@@ -7,6 +7,6 @@
             sample.to_csv(output_path, index=False)
             print(f"Stichprobe gespeichert in: {output_path}")
 """
-
+# Teständerung
 #if __name__ == "__main__":
 #sampler.save_sample("sample_1000.csv") 
