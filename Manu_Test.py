@@ -1,6 +1,6 @@
 print("Hallo")
 
-
+import os
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -8,9 +8,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 
 # 1. CSV-Dateien einlesen
-transactions = pd.read_csv('transactions.csv')
-customers = pd.read_csv('customers.csv')
-terminals = pd.read_csv('terminals.csv')
+transactions = pd.read_csv("C://PM4/transactions.csv")
+customers = pd.read_csv('C://PM4/customers.csv')
+terminals = pd.read_csv('C://PM4/terminals.csv')
 
 # 2. Unnötige Spalte "Unnamed: 0" entfernen (falls vorhanden)
 for df in [transactions, customers, terminals]:
