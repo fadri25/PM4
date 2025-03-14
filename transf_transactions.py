@@ -25,7 +25,7 @@ def is_night(tx_datetime):
     return int(is_night)
 
 # Lade die Datei mit der Funktion
-transactions_df = read_from_files("transactions.csv", "2018-04-01", "2018-09-30")
+transactions_df = read_from_files("C:/PM4/transactions.csv", "2018-04-01", "2018-09-30")
 
 # Berechne, ob die Transaktion am Wochenende war
 transactions_df['TX_DURING_WEEKEND'] = transactions_df.TX_DATETIME.apply(is_weekend)

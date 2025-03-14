@@ -48,7 +48,7 @@ class CSVSampler:
         return self.df.sample(n=sample_size, random_state=random_state)
 
 if __name__ == "__main__":
-    loader = CSVLoader(f"data/transactions.csv")
+    loader = CSVLoader(f"C:/PM4/transactions.csv")
     loader.load_csv()
     
     df = loader.get_dataframe()
