@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import datetime
 
 # Funktion zum Laden der CSV-Datei
 def read_from_files(input_file, begin_date, end_date):
@@ -65,24 +66,66 @@ def get_count_risk_rolling_window(terminal_transactions, delay=7, windows_size_i
     terminal_transactions.fillna(0, inplace=True)
     return terminal_transactions
 
-def write_to_files(df, output_folder, start_date, end_date):
+""" Test und kann Ignoriert werden:
+def write_to_files(df, output_folder, begin_date, end_date):
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     
+    # Überprüfe das minimale und maximale Datum im Datensatz
+    print("Min Datum im Datensatz:", df['TX_DATETIME'].min())
+    print("Max Datum im Datensatz:", df['TX_DATETIME'].max())
+    
     # Filtere den Datensatz auf den gewünschten Zeitraum
-    df_period = df[(df['TX_DATETIME'] >= start_date) & (df['TX_DATETIME'] <= end_date)]
+    df_period = df[(df['TX_DATETIME'] >= begin_date) & (df['TX_DATETIME'] <= end_date)]
+    print("Anzahl Zeilen im gefilterten DataFrame:", len(df_period))
     
     # Erzeuge einen Tagesbereich und speichere für jeden Tag eine CSV-Datei
-    date_range = pd.date_range(start_date, end_date, freq='D')
+    #date_range = pd.date_range(begin_date, end_date, freq='D')
+    date_range = pd.date_range(begin_date, datetime.datetime.today().strftime("%Y-%m-%d"), freq='D')
     for single_date in date_range:
         day_str = single_date.strftime('%Y-%m-%d')
         day_df = df_period[df_period['TX_DATETIME'].dt.strftime('%Y-%m-%d') == day_str]
+        print(f"{day_str}: {len(day_df)} Zeilen")
         if len(day_df) > 0:
             filename = os.path.join(output_folder, f"transactions_{day_str}.csv")
             day_df.to_csv(filename, index=False)
     print(f"Datensatz wurde tageweise im Ordner '{output_folder}' gespeichert.")
     
+def write_to_files_all(df, output_folder):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    # Speichere den gesamten DataFrame in eine CSV-Datei
+    output_file = os.path.join(output_folder, "transactions_all.csv")
+    df.to_csv(output_file, index=False)
+    print(f"Der gesamte Datensatz wurde in '{output_file}' gespeichert.")
 
+"""
+
+def write_to_files(df, output_folder, begin_date, end_date):
+    if not os.path.exists(DIR_OUTPUT):
+        os.makedirs(DIR_OUTPUT)
+        
+    start_date = datetime.datetime.strptime("2018-04-01", "%Y-%m-%d")
+    for day in range(transactions_df.TX_TIME_DAYS.max()+1):
+    
+        transactions_day = transactions_df[transactions_df.TX_TIME_DAYS==day].sort_values('TX_TIME_SECONDS')
+        
+        date = start_date + datetime.timedelta(days=day)
+        filename_output = date.strftime("%Y-%m-%d")+'.pkl'
+        
+        # Protocol=4 required for Google Colab
+        transactions_day.to_pickle(output_folder+filename_output, protocol=4)
+
+#Um die daten zu überprüffen (Speciherung in excel)
+def write_to_files_all(df, output_folder):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    # Speichere den gesamten DataFrame in eine CSV-Datei
+    output_file = os.path.join(output_folder, "transactions_all.csv")
+    df.to_csv(output_file, index=False)
+    print(f"Der gesamte Datensatz wurde in '{output_file}' gespeichert.")
+    
+    
 """
 # Lade die Datei mit der Funktion
 transactions_df = read_from_files("C:/PM4/transactions.csv", "2018-04-01", "2018-09-30")
@@ -108,7 +151,7 @@ print(filtered_transactions)
 if __name__ == "__main__":
     input_file = "C:/PM4/transactions.csv"
     begin_date = "2018-04-01"
-    end_date = "2018-09-30"
+    end_date = "2019-09-30"
     
     # Anzeigeoptionen setzen, damit die komplette Tabelle im Terminal dargestellt wird
     pd.set_option('display.max_rows', None)
@@ -168,7 +211,7 @@ if __name__ == "__main__":
     DIR_OUTPUT = "C:/PM4/processed-data/"
     print(f"Speichere transformierten Datensatz im Zeitraum {begin_date} bis {end_date} ...")
     write_to_files(transactions_df, DIR_OUTPUT, begin_date, end_date)
-    # Speichert den gesamten DataFrame in eine Excel-Datei ohne Index
+    write_to_files_all(transactions_df, "C:/PM4/processed-data/")
     # Speichert den df in eine Excel-Datei / Für eine Kurze überprüffung nur zb 100 eingeben, für die maximale exelkaazität nicht zu überschreibten: 1000000
     transactions_df.head(1000000).to_excel("C:/PM4/processed-data/transactions_first_1000000.xlsx", index=False)
 
