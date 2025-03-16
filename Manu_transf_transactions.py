@@ -116,7 +116,7 @@ def write_to_files(df, output_folder, begin_date, end_date):
             
         start_date = datetime.datetime.strptime("2018-04-01", "%Y-%m-%d")
         for day in range(transactions_df.TX_TIME_DAYS.max()+1):
-        
+            print(f"überprüfung => Tag: {day}")
             transactions_day = transactions_df[transactions_df.TX_TIME_DAYS==day].sort_values('TX_TIME_SECONDS')
             
             date = start_date + datetime.timedelta(days=day)
