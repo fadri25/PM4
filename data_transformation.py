@@ -45,33 +45,31 @@ class DataTransformation:
             print("Keine Daten vorhanden zur Kontrolle!")
             return False
 
-        # 1️⃣ Überblick über die Daten
-        print("🔎 Zusammenfassung des erweiterten DataFrames:")
+        print("Zusammenfassung des erweiterten DataFrames:")
         print(self.df.head(50))  
 
-        # 2️⃣ TX_DATETIME Prüfungen
-        print("\n🕒 Erste 10 TX_DATETIME:")
+        print("\n Erste 10 TX_DATETIME:")
         print(self.df['TX_DATETIME'].head(10))
 
-        print("\n📅 Wochentage der ersten 10 TX_DATETIME:")
+        print("\n Wochentage der ersten 10 TX_DATETIME:")
         print(self.df['TX_DATETIME'].head(10).dt.weekday)
 
-        print("\n⏰ Stunden der ersten 10 TX_DATETIME:")
+        print("\n Stunden der ersten 10 TX_DATETIME:")
         print(self.df['TX_DATETIME'].head(10).dt.hour)
 
-        # 3️⃣ Anzahl der Betrugsfälle
-        print("\n🚨 Anzahl Betrugsfälle (TX_FRAUD = 1):", self.df['TX_FRAUD'].sum())
+        # Anzahl der Betrugsfälle
+        print("\n Anzahl Betrugsfälle (TX_FRAUD = 1):", self.df['TX_FRAUD'].sum())
 
-        # 4️⃣ Terminal-spezifische Risiko-Features für ein Beispiel-Terminal (3156)
+        # Terminal-spezifische Risiko-Features für ein Beispiel-Terminal (3156)
         terminal_sample = self.df[self.df['TERMINAL_ID'] == 3156].copy()
         if not terminal_sample.empty:
             terminal_sample = Terminalriskfeatures.calculate_risk_features(terminal_sample, delay=7, windows_size_in_days=[30])
-            print("\n🏦 Risiko-Features für Terminal 3156 (30 Tage):")
+            print("\n Risiko-Features für Terminal 3156 (30 Tage):")
             print(terminal_sample[['TX_DATETIME', 'TX_FRAUD',
                                 'TERMINAL_ID_NB_TX_30DAY_WINDOW',
                                 'TERMINAL_ID_RISK_30DAY_WINDOW']])
         else:
-            print("\n⚠ Kein Terminal mit ID 3156 gefunden.")
+            print("\n Kein Terminal mit ID 3156 gefunden.")
 
         return True
 
@@ -92,9 +90,11 @@ class DataTransformation:
         
         return True
     
+    @staticmethod
     def is_weekend(tx_datetime):
         return int(tx_datetime.weekday() >= 5)
     
+    @staticmethod
     def is_night(tx_datetime):
         return int(tx_datetime.hour <= 6)
 
