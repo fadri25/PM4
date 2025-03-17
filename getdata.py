@@ -48,14 +48,4 @@ class CSVSampler:
         return self.df.sample(n=sample_size, random_state=random_state)
 
 if __name__ == "__main__":
-    loader = CSVLoader(f"C:/PM4/transactions.csv")
-    loader.load_csv()
-    
-    df = loader.get_dataframe()
-    
-    if df is not None:
-        sampler = CSVSampler(df)
-        sample_df = sampler.get_sample()
-        
-        if sample_df is not None:
-            print(sample_df.head()) 
+    pass
