@@ -1,64 +1,104 @@
+import time
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+import numpy as np
+
+from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.metrics import (
+    precision_score, recall_score, f1_score, 
+    roc_auc_score, average_precision_score
+)
 import xgboost as xgb
 
-# Laden des Datensatzes
-df = pd.read_excel(r"C:\PM4\processed-data\transactions_first_100.xlsx")
+# 1) Daten laden (Pfad anpassen)
+df = pd.read_csv(r"C:\PM4\processed-data\transactions_first_10000.csv")
 
-# Ziel (Target) und Features extrahieren
+# 2) Features und Zielvariable definieren
+#    Passe die Spaltennamen an, falls sie im CSV anders heißen
 X = df.drop(columns=['TRANSACTION_ID', 'TX_DATETIME', 'TX_FRAUD'])
 y = df['TX_FRAUD']
 
-# Aufteilen in Trainings- und Testdaten
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# 3) Aufteilen in Trainings- und Testdaten (stratifiziert, damit beide Klassen vertreten sind)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, 
+    test_size=0.2, 
+    random_state=42,
+    stratify=y
+)
 
-# XGBoost-Modell mit dem richtigen 'objective' Parameter für binäre Klassifikation erstellen
-model = xgb.XGBClassifier(objective='binary:logistic', use_label_encoder=False, eval_metric='mlogloss')
+# 4) XGBoost-Klassifikationsmodell erstellen
+model = xgb.XGBClassifier(
+    objective='binary:logistic',
+    eval_metric='mlogloss',
+    use_label_encoder=False
+)
 
-# Modell trainieren
-model.fit(X_train, y_train)
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
-import xgboost as xgb
+# 5) Parameter-Raster definieren (analog zum Handbook)
+param_grid = {
+    "max_depth": [3, 6, 9],
+    "n_estimators": [25, 50, 100],
+    "learning_rate": [0.1, 0.3],
+    "random_state": [0],
+    "n_jobs": [1],
+    "verbosity": [0]
+}
 
-# Laden des Datensatzes (bitte passe den Pfad an deine Umgebung an)
-df = pd.read_excel(r"C:\PM4\processed-data\transactions_first_100.xlsx")
+# 6) GridSearchCV einrichten: Wir verwenden als Scoring 'roc_auc' und 'average_precision'
+scoring = {
+    "roc_auc": "roc_auc",
+    "avg_precision": "average_precision"
+}
 
-# Zielvariable (TX_FRAUD) und Features extrahieren
-X = df.drop(columns=['TRANSACTION_ID', 'TX_DATETIME', 'TX_FRAUD'])
-y = df['TX_FRAUD']
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
-# Aufteilen des Datensatzes in Trainings- und Testdaten (80% Training, 20% Test)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+grid_search = GridSearchCV(
+    estimator=model,
+    param_grid=param_grid,
+    scoring=scoring,
+    refit="roc_auc",  # Das beste Modell wird anhand von ROC-AUC ausgewählt
+    cv=cv,
+    return_train_score=True,
+    n_jobs=1  # 1 Kern, analog zum Handbook-Beispiel
+)
 
-# Erstellen des XGBoost-Klassifikationsmodells mit dem korrekten 'objective'
-model = xgb.XGBClassifier(objective='binary:logistic', use_label_encoder=False, eval_metric='mlogloss')
+# 7) Grid Search durchführen und Trainingszeit messen
+start_time = time.time()
+grid_search.fit(X_train, y_train)
+grid_search_time = time.time() - start_time
 
-# Trainieren des Modells
-model.fit(X_train, y_train)
+print("Grid Search Trainingszeit: {:.2f} Sekunden".format(grid_search_time))
+print("Beste Parameter: ", grid_search.best_params_)
 
-# Vorhersagen auf den Testdaten
-y_pred = model.predict(X_test)
+# Ergebnisse der Grid Search in einem DataFrame sammeln (optional)
+results_df = pd.DataFrame(grid_search.cv_results_)
+print("\nErgebnisse der Grid Search (Top 5 Zeilen):")
+print(results_df[['params', 'mean_test_roc_auc', 'mean_test_avg_precision']].head())
 
-# Evaluierung des Modells
-accuracy = accuracy_score(y_test, y_pred)
-report = classification_report(y_test, y_pred)
+# 8) Evaluierung auf dem Testset mit dem besten Modell
+best_model = grid_search.best_estimator_
 
-# Ausgabe der Ergebnisse
-print(f"Genauigkeit: {accuracy}")
-print("Klassifikationsbericht:")
-print(report)
+# Inference-Zeit messen
+start_time = time.time()
+y_prob = best_model.predict_proba(X_test)[:, 1]  # Wahrscheinlichkeiten (für ROC-AUC, PR-AUC)
+inference_time_total = time.time() - start_time
+inference_time_per_tx = inference_time_total / len(X_test)
 
-# Vorhersagen auf den Testdaten
-y_pred = model.predict(X_test)
+# Klassische Vorhersage (binäre Labels)
+y_pred = (y_prob >= 0.5).astype(int)
 
-# Modell evaluieren
-accuracy = accuracy_score(y_test, y_pred)
-report = classification_report(y_test, y_pred)
+# Metriken berechnen
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+roc_auc = roc_auc_score(y_test, y_prob)
+pr_auc = average_precision_score(y_test, y_prob)
 
-# Ausgabe der Ergebnisse
-print(f"Accuracy: {accuracy}")
-print("Classification Report:")
-print(report)
+print("\n==== Testset Metriken ====")
+print(f"Precision:  {precision:.4f}")
+print(f"Recall:     {recall:.4f}")
+print(f"F1-Score:   {f1:.4f}")
+print(f"ROC-AUC:    {roc_auc:.4f}")
+print(f"PR-AUC:     {pr_auc:.4f}")
+
+print("\n==== Inference Zeiten ====")
+print(f"Inference-Zeit gesamt: {inference_time_total:.6f} Sekunden")
+print(f"Inference-Zeit pro Transaktion: {inference_time_per_tx:.6f} Sekunden")
