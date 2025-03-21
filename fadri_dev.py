@@ -6,20 +6,20 @@
         if sample is not None:
             sample.to_csv(output_path, index=False)
             print(f"Stichprobe gespeichert in: {output_path}")
-"""
+
 # Teständerung
 #if __name__ == "__main__":
 #sampler.save_sample("sample_1000.csv") 
 
 
-"""
+
     def save_sample(self, output_path, sample_size=1000):
         #Speichert die zufällige Stichprobe in eine neue CSV-Datei.
         sample = self.get_sample(sample_size)
         if sample is not None:
             sample.to_csv(output_path, index=False)
             print(f"Stichprobe gespeichert in: {output_path}")
-"""
+
 # Teständerung
 #if __name__ == "__main__":
 #sampler.save_sample("sample_1000.csv") 
@@ -38,7 +38,7 @@ from functools import partial
 import warnings
 from sklearn.model_selection import cross_validate
 
-"""
+
 MIN_PRECISION = 0.05
 
 # The current version of XGBoost uses a conditional statement that
@@ -52,7 +52,6 @@ print(df.head(3))
 print(df.info())
 missing_values = df.isnull().sum()
 missing_values
-"""
 
 MIN_PRECISION = 0.05
 
@@ -191,6 +190,194 @@ if __name__ == "__main__":
     print('\tTest set performance:')
     print('\tRecall    = %2.3f' % test_recall)
     print('\tPrecision = %2.3f' % test_precision)
+"""  
+
+from getdata import CSVLoader, CSVSampler
+from data_transformation import DataTransformation, CustomerFeatures, Terminalriskfeatures
+import xgboost
+import pandas as pd
+import sklearn
+import numpy as np
+import matplotlib as plt
+
+class Gui:
+    def testgui():
+        print("test")
+
+if __name__ == "__main__":
+    #loader = CSVLoader(f"C:/PM4/transactions.csv")
+    #loader.load_csv()
+    begin_date = "2018-04-01"
+    end_date = "2019-09-30"
+    input_file = "C:/PM4/transactions.csv"
+    output_folder = "C:/PM4/processed-data/"
+    processor = DataTransformation(input_file, output_folder, begin_date, end_date)
+    processor.load_data()
+    
+    if processor.process_transactions():
+        processor.run_checks()
+        processor.save_processed_data()
+    
+    print("Verarbeitung abgeschlossen.")
+    
+    X, y = sklearn.datasets.make_classification(n_samples=5000, n_features=2, n_informative=2,
+                                            n_redundant=0, n_repeated=0, n_classes=2,
+                                            n_clusters_per_class=1,
+                                            weights=[0.95, 0.05],
+                                            class_sep=0.5, random_state=0)
+    loader = CSVLoader("C:/PM4/processed-data/")
+    loader.load_csv
+    dataset_df = pd.DataFrame({'X1':X[:,0],'X2':X[:,1], 'Y':y})
+
+    def kfold_cv_with_classifier(classifier,
+                             X,
+                             y,
+                             n_splits=5,
+                             strategy_name="Basline classifier"):
+    
+        cv = sklearn.model_selection.StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=0)
+        
+        cv_results_ = sklearn.model_selection.cross_validate(classifier,X,y,cv=cv,
+                                                            scoring=['roc_auc',
+                                                                    'average_precision',
+                                                                    'balanced_accuracy'],
+                                                            return_estimator=True)
+        
+        results = round(pd.DataFrame(cv_results_),3)
+        results_mean = list(results.mean().values)
+        results_std = list(results.std().values)
+        results_df = pd.DataFrame([[str(round(results_mean[i],3))+'+/-'+
+                                    str(round(results_std[i],3)) for i in range(len(results))]],
+                                columns=['Fit time (s)','Score time (s)',
+                                        'AUC ROC','Average Precision','Balanced accuracy'])
+        results_df.rename(index={0:strategy_name}, inplace=True)
+        
+        classifier_0 = cv_results_['estimator'][0]
+        
+        (train_index, test_index) = next(cv.split(X, y))
+        train_df = pd.DataFrame({'X1':X[train_index,0], 'X2':X[train_index,1], 'Y':y[train_index]})
+        test_df = pd.DataFrame({'X1':X[test_index,0], 'X2':X[test_index,1], 'Y':y[test_index]})
+        
+        return (results_df, classifier_0, train_df, test_df)
+    
+    def plot_decision_boundary_classifier(ax, 
+                                      classifier,
+                                      train_df,
+                                      input_features=['X1','X2'],
+                                      output_feature='Y',
+                                      title="",
+                                      fs=14,
+                                      plot_training_data=True):
+
+        plot_colors = ["tab:blue","tab:orange"]
+
+        x1_min, x1_max = train_df[input_features[0]].min() - 1, train_df[input_features[0]].max() + 1
+        x2_min, x2_max = train_df[input_features[1]].min() - 1, train_df[input_features[1]].max() + 1
+        
+        plot_step=0.1
+        xx, yy = np.meshgrid(np.arange(x1_min, x1_max, plot_step),
+                            np.arange(x2_min, x2_max, plot_step))
+
+        Z = classifier.predict_proba(np.c_[xx.ravel(), yy.ravel()])[:,1]
+        Z = Z.reshape(xx.shape)
+        ax.contourf(xx, yy, Z, cmap=plt.cm.RdYlBu_r,alpha=0.3)
+
+        if plot_training_data:
+            # Plot the training points
+            groups = train_df.groupby(output_feature)
+            for name, group in groups:
+                ax.scatter(group[input_features[0]], group[input_features[1]], edgecolors='black', label=name)
+            
+        ax.set_title(title, fontsize=fs)
+        ax.set_xlabel(input_features[0], fontsize=fs)
+        ax.set_ylabel(input_features[1], fontsize=fs)
     
     
-## KGV (Kriterium --> Dividendenausschüttung)
+    fig_decision_boundary, ax = plt.subplots(1, 3, figsize=(5*3,5))
+    classifier = sklearn.tree.DecisionTreeClassifier(max_depth=5,class_weight={0:1,1:1},random_state=0)
+    cv = sklearn.model_selection.StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+    cv_results_ = sklearn.model_selection.cross_validate(classifier, X, y, cv=cv,
+                                                     scoring=['roc_auc',
+                                                              'average_precision',
+                                                              'balanced_accuracy'],
+                                                     return_estimator=True)
+    # Retrieve the decision tree from the first fold of the cross-validation
+    classifier_0 = cv_results_['estimator'][0]
+    # Retrieve the indices used for the training and testing of the first fold of the cross-validation
+    (train_index, test_index) = next(cv.split(X, y))
+
+    # Recreate the train and test DafaFrames from these indices
+    train_df = pd.DataFrame({'X1':X[train_index,0], 'X2':X[train_index,1], 'Y':y[train_index]})
+    test_df = pd.DataFrame({'X1':X[test_index,0], 'X2':X[test_index,1], 'Y':y[test_index]})
+    input_features = ['X1','X2']
+    output_feature = 'Y'
+
+    plot_decision_boundary_classifier(ax[0], classifier_0,
+                                    train_df,
+                                    title="Decision surface of the decision tree\n With training data",
+                                    plot_training_data=True)
+
+    plot_decision_boundary_classifier(ax[1], classifier_0,
+                                    train_df,
+                                    title="Decision surface of the decision tree\n",
+                                    plot_training_data=False)
+
+
+    plot_decision_boundary_classifier(ax[2], classifier_0,
+                                    test_df,
+                                    title="Decision surface of the decision tree\n With test data",
+                                    plot_training_data=True)
+
+    ax[-1].legend(loc='upper left', 
+                bbox_to_anchor=(1.05, 1),
+                title="Class")
+
+    sm = plt.cm.ScalarMappable(cmap=plt.cm.RdYlBu_r, norm=plt.Normalize(vmin=0, vmax=1))
+    cax = fig_decision_boundary.add_axes([0.93, 0.15, 0.02, 0.5])
+    fig_decision_boundary.colorbar(sm, cax=cax, alpha=0.3, boundaries=np.linspace(0, 1, 11))
+    
+    def plot_decision_boundary(classifier_0,
+                           train_df, 
+                           test_df):
+    
+        fig_decision_boundary, ax = plt.subplots(1, 3, figsize=(5*3,5))
+
+        plot_decision_boundary_classifier(ax[0], classifier_0,
+                                    train_df,
+                                    title="Decision surface of the decision tree\n With training data",
+                                    plot_training_data=True)
+
+        plot_decision_boundary_classifier(ax[1], classifier_0,
+                                    train_df,
+                                    title="Decision surface of the decision tree\n",
+                                    plot_training_data=False)
+
+
+        plot_decision_boundary_classifier(ax[2], classifier_0,
+                                    test_df,
+                                    title="Decision surface of the decision tree\n With test data",
+                                    plot_training_data=True)
+
+        ax[-1].legend(loc='upper left', 
+                    bbox_to_anchor=(1.05, 1),
+                    title="Class")
+
+        sm = plt.cm.ScalarMappable(cmap=plt.cm.RdYlBu_r, norm=plt.Normalize(vmin=0, vmax=1))
+        cax = fig_decision_boundary.add_axes([0.93, 0.15, 0.02, 0.5])
+        fig_decision_boundary.colorbar(sm, cax=cax, alpha=0.3, boundaries=np.linspace(0, 1, 11))
+        
+        return fig_decision_boundary
+
+    classifier = xgboost.XGBClassifier(n_estimators=100,
+                                    max_depth=6,
+                                    learning_rate=0.3,
+                                    random_state=0)
+
+    (results_df_xgboost, classifier_0, train_df, test_df) = kfold_cv_with_classifier(classifier, 
+                                                                                    X, y, 
+                                                                                    n_splits=5,
+                                                                                    strategy_name="XGBoost")
+
+    fig_decision_boundary = plot_decision_boundary(classifier_0, train_df, test_df)
+    
+    pd.concat([results_df_xgboost])
