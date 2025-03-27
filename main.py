@@ -1,6 +1,6 @@
 from getdata import CSVLoader, CSVSampler
 from data_transformation import DataTransformation, CustomerFeatures, Terminalriskfeatures
-import xgboost
+import xgboost_model
 import pandas as pd
 import sklearn
 import numpy as np

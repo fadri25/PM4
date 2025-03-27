@@ -8,7 +8,7 @@ from sklearn.metrics import (precision_score, recall_score, f1_score,
                              roc_auc_score, average_precision_score, confusion_matrix, precision_recall_curve)
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline
-import xgboost as xgb
+import xgboost_model as xgb
 
 # 1) Daten laden
 df = pd.read_csv(r"C:\PM4\processed-data\transactions_first_100000.csv")
