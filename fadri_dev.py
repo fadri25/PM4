@@ -190,7 +190,6 @@ if __name__ == "__main__":
     print('\tTest set performance:')
     print('\tRecall    = %2.3f' % test_recall)
     print('\tPrecision = %2.3f' % test_precision)
-"""  
 
 from getdata import CSVLoader, CSVSampler
 from data_transformation import DataTransformation, CustomerFeatures, Terminalriskfeatures
@@ -335,7 +334,7 @@ if __name__ == "__main__":
     sm = plt.cm.ScalarMappable(cmap=plt.cm.RdYlBu_r, norm=plt.Normalize(vmin=0, vmax=1))
     cax = fig_decision_boundary.add_axes([0.93, 0.15, 0.02, 0.5])
     fig_decision_boundary.colorbar(sm, cax=cax, alpha=0.3, boundaries=np.linspace(0, 1, 11))
-    
+
     def plot_decision_boundary(classifier_0,
                            train_df, 
                            test_df):
@@ -381,3 +380,22 @@ if __name__ == "__main__":
     fig_decision_boundary = plot_decision_boundary(classifier_0, train_df, test_df)
     
     pd.concat([results_df_xgboost])
+"""
+
+
+# Optional: NaN oder Inf-Werte behandeln
+X_train = X_train.copy()
+X_test = X_test.copy()
+X_train['SPENDING_DRIFT'] = X_train['SPENDING_DRIFT'].replace([np.inf, -np.inf], 0)
+X_test['SPENDING_DRIFT'] = X_test['SPENDING_DRIFT'].replace([np.inf, -np.inf], 0)
+X_train['SPENDING_DRIFT'] = X_train['SPENDING_DRIFT'].fillna(1)
+X_test['SPENDING_DRIFT'] = X_test['SPENDING_DRIFT'].fillna(1)
+
+# Szenario-basierte Auswertung
+for scenario in [1, 2, 3]:
+    idx = df.loc[y_test.index, 'TX_FRAUD_SCENARIO'] == scenario
+    if idx.sum() > 0:
+        recall_scenario = recall_score(y_test[idx], y_pred_es[idx])
+        print(f"Recall für Scenario {scenario}: {recall_scenario:.4f}")
+    else:
+        print(f"Scenario {scenario}: Keine Testdaten vorhanden.")

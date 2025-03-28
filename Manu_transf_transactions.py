@@ -139,8 +139,7 @@ def write_to_files_all(df, output_folder):
         print(f"Der gesamte Datensatz wurde in '{output_file}' gespeichert.")
     except Exception as e:
         print(f"Fehler {e}")
-        return False
-    
+        return False  
     
 """
 # Lade die Datei mit der Funktion
