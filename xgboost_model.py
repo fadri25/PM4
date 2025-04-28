@@ -138,6 +138,47 @@ class FraudDetectionModel:
         xgb.plot_importance(self.model)
         plt.title("Feature Importance")
         plt.show()
+        
+    def save_model(self, path="C:\PM4\fraud_detection_model.json"):
+        if self.model is not None:
+            self.model.save_model(path)
+            print(f"Modell gespeichert unter: {path}")
+        else:
+            print("Kein Modell zum Speichern vorhanden.")
+
+    def load_model(self, path="C:\PM4\fraud_detection_model.json", X_test=None):
+        self.model = xgb.Booster()
+        self.model.load_model(path)
+        print(f"Modell geladen von: {path}")
+        if X_test is not None:
+            self.dtest = xgb.DMatrix(X_test)
+
+    def predict_new_data(self, csv_path, save_predictions_path=None):
+        """
+        Lädt neue Transaktionsdaten, wendet Feature Engineering an,
+        macht Vorhersagen und speichert optional die Ergebnisse.
+        """
+        print(f"Lade neue Daten von: {csv_path}")
+        new_df = pd.read_csv(csv_path)
+
+        self.df = new_df
+        self.feature_engineering()
+
+        X_new = self.df.drop(columns=['TRANSACTION_ID', 'TX_DATETIME', 'TX_FRAUD', 'TX_FRAUD_SCENARIO', 'AVG_LAST_TX_AMOUNT'], errors='ignore')
+        X_new = X_new.replace([np.inf, -np.inf], 0).fillna(0)
+        dnew = xgb.DMatrix(X_new)
+
+        y_prob_new = self.model.predict(dnew)
+        y_pred_new = (y_prob_new >= self.threshold).astype(int)
+
+        self.df['PREDICTED_FRAUD'] = y_pred_new
+
+        if save_predictions_path:
+            self.df[['TRANSACTION_ID', 'PREDICTED_FRAUD']].to_csv(save_predictions_path, index=False)
+            print(f"Vorhersagen gespeichert unter: {save_predictions_path}")
+
+        return self.df[['TRANSACTION_ID', 'PREDICTED_FRAUD']]
+
 
 if __name__ == '__main__':
     pass
