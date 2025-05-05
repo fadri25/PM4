@@ -31,6 +31,10 @@ class FraudDetectionModel:
         df['AVG_LAST_TX_AMOUNT'] = df.groupby('CUSTOMER_ID')['TX_AMOUNT'].transform(
             lambda x: x.shift(1).rolling(window=5, min_periods=1).mean())
         df['SPENDING_DRIFT'] = df['TX_AMOUNT'] / (df['AVG_LAST_TX_AMOUNT'] + 1e-5)
+        df['TX_DATETIME'] = pd.to_datetime(df['TX_DATETIME'])
+        df = df.sort_values(['CUSTOMER_ID', 'TX_DATETIME'])
+        df['TX_COUNT_1H'] = 0
+
         self.df = df
 
     def prepare_data(self):
@@ -52,16 +56,9 @@ class FraudDetectionModel:
         ])
 
         param_grid = {
-            'clf__max_depth': [1, 3],
-            'clf__n_estimators': [50, 100, 150],
-            'clf__learning_rate': [0.05, 0.1, 0.2],
-            'clf__subsample': [0.8, 0.9, 1.0],
-            'clf__colsample_bytree': [0.8, 0.9, 1.0],
-            'clf__gamma': [0, 1, 5],
-            'clf__min_child_weight': [1, 5],
-            'clf__scale_pos_weight': [1, 5, 10],
-            'clf__reg_alpha': [0, 0.1],
-            'clf__reg_lambda': [1, 10],
+            'clf__max_depth': [3, 6, 9],
+            'clf__n_estimators': [25, 50, 100],
+            'clf__learning_rate': [0.1, 0.3],
             'clf__random_state': [0]
         }
 
@@ -82,7 +79,7 @@ class FraudDetectionModel:
         print("Beste Parameter:", grid_search.best_params_)
         self.best_params = grid_search.best_params_
 
-    def final_model_training(self, X_train, y_train):
+    def final_model_training(self, X_train, y_train, X_test, y_test):
         X_train_main, X_val, y_train_main, y_val = train_test_split(
             X_train, y_train, test_size=0.1, random_state=42, stratify=y_train
         )
@@ -119,22 +116,70 @@ class FraudDetectionModel:
         print(f"F1-Score:   {f1_score(y_test, y_pred):.4f}")
         print(f"ROC-AUC:    {roc_auc_score(y_test, y_prob):.4f}")
         print(f"PR-AUC:     {average_precision_score(y_test, y_prob):.4f}")
-
+        
         print("\nKonfusionsmatrix:")
         print(confusion_matrix(y_test, y_pred))
+        tn, fp, fn, tp = confusion_matrix(y_test, y_pred).ravel()
+        fpr = fp / (fp + tn)
+        fnr = fn / (fn + tp)
+        print(f"\nFalse Positive Rate (FPR): {fpr:.4%}")
+        print(f"False Negative Rate (FNR): {fnr:.4%}")
+        df_eval = self.df.loc[y_test.index]  # nur die Testdaten
+        print("\nSzenario-basierte Recall-Werte:")
+        for scenario in [1, 2, 3]:
+            idx = df_eval['TX_FRAUD_SCENARIO'] == scenario
+            if idx.sum() > 0:
+                recall_scenario = recall_score(y_test[idx], y_pred[idx])
+                print(f"Recall für Scenario {scenario}: {recall_scenario:.4f}")
+            else:
+                print(f"Scenario {scenario}: Keine Testdaten vorhanden.")
 
     def plot_feature_importance(self):
         xgb.plot_importance(self.model)
         plt.title("Feature Importance")
         plt.show()
+        
+    def save_model(self, path="C:\PM4\fraud_detection_model.json"):
+        if self.model is not None:
+            self.model.save_model(path)
+            print(f"Modell gespeichert unter: {path}")
+        else:
+            print("Kein Modell zum Speichern vorhanden.")
+
+    def load_model(self, path="C:\PM4\fraud_detection_model.json", X_test=None):
+        self.model = xgb.Booster()
+        self.model.load_model(path)
+        print(f"Modell geladen von: {path}")
+        if X_test is not None:
+            self.dtest = xgb.DMatrix(X_test)
+
+    def predict_new_data(self, csv_path, save_predictions_path=None):
+        """
+        Lädt neue Transaktionsdaten, wendet Feature Engineering an,
+        macht Vorhersagen und speichert optional die Ergebnisse.
+        """
+        print(f"Lade neue Daten von: {csv_path}")
+        new_df = pd.read_csv(csv_path)
+
+        self.df = new_df
+        self.feature_engineering()
+
+        X_new = self.df.drop(columns=['TRANSACTION_ID', 'TX_DATETIME', 'TX_FRAUD', 'TX_FRAUD_SCENARIO', 'AVG_LAST_TX_AMOUNT'], errors='ignore')
+        X_new = X_new.replace([np.inf, -np.inf], 0).fillna(0)
+        dnew = xgb.DMatrix(X_new)
+
+        y_prob_new = self.model.predict(dnew)
+        y_pred_new = (y_prob_new >= self.threshold).astype(int)
+
+        self.df['PREDICTED_FRAUD'] = y_pred_new
+
+        if save_predictions_path:
+            self.df[['TRANSACTION_ID', 'PREDICTED_FRAUD']].to_csv(save_predictions_path, index=False)
+            print(f"Vorhersagen gespeichert unter: {save_predictions_path}")
+
+        return self.df[['TRANSACTION_ID', 'PREDICTED_FRAUD']]
 
 
-# Anwendung
 if __name__ == '__main__':
-    model = FraudDetectionModel(r"C:/PM4/processed-data/transactions_first_100000.csv")
-    model.feature_engineering()
-    X_train, X_test, y_train, y_test = model.prepare_data()
-    model.train_model(X_train, y_train)
-    model.final_model_training(X_train, y_train)
-    model.evaluate(y_test)
-    model.plot_feature_importance()
+    pass
+

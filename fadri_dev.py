@@ -382,20 +382,3 @@ if __name__ == "__main__":
     pd.concat([results_df_xgboost])
 """
 
-
-# Optional: NaN oder Inf-Werte behandeln
-X_train = X_train.copy()
-X_test = X_test.copy()
-X_train['SPENDING_DRIFT'] = X_train['SPENDING_DRIFT'].replace([np.inf, -np.inf], 0)
-X_test['SPENDING_DRIFT'] = X_test['SPENDING_DRIFT'].replace([np.inf, -np.inf], 0)
-X_train['SPENDING_DRIFT'] = X_train['SPENDING_DRIFT'].fillna(1)
-X_test['SPENDING_DRIFT'] = X_test['SPENDING_DRIFT'].fillna(1)
-
-# Szenario-basierte Auswertung
-for scenario in [1, 2, 3]:
-    idx = df.loc[y_test.index, 'TX_FRAUD_SCENARIO'] == scenario
-    if idx.sum() > 0:
-        recall_scenario = recall_score(y_test[idx], y_pred_es[idx])
-        print(f"Recall für Scenario {scenario}: {recall_scenario:.4f}")
-    else:
-        print(f"Scenario {scenario}: Keine Testdaten vorhanden.")
