@@ -130,7 +130,14 @@ if page == "Aktueller Stand":
     st.markdown("---")
 
     # === Letzte 5 verdächtige Transaktionen mit Statusanzeige ===
-    st.subheader("🕵️‍♂️ Letzte 5 zu überprüfende Betrugsfälle")
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.subheader("🕵️‍♂️ Zu überprüfende Betrugsfälle")
+    with col2:
+        if st.button("ℹ️ Hilfe", key="hilfe_transaktionen"):
+            st.session_state.page = "Support"
+            st.rerun()
+    
 
     letzte_betrugsfaelle = df_heute[df_heute["TX_FRAUD"] == 1].sort_values(by="TX_DATETIME", ascending=False).head(5).copy()
     status_liste = [
@@ -138,7 +145,7 @@ if page == "Aktueller Stand":
         "🟥 Offen",
         "🟧 In Bearbeitung (0452)",
         "🟧 In Bearbeitung (0572)",
-        "✅ Abgeschlossen"
+        "✅ Abgeschlossen (0578)"
     ]
     letzte_betrugsfaelle["Status"] = status_liste[:len(letzte_betrugsfaelle)]
     letzte_betrugsfaelle["Zeit"] = letzte_betrugsfaelle["TX_DATETIME"].dt.strftime("%H:%M")
@@ -155,7 +162,7 @@ if page == "Aktueller Stand":
     st.markdown("---")
 
     # === Transaktionen nach Stunden ===
-    st.subheader("⏰ Verteilung nach Stunde")
+    st.subheader("⏰ Verteilung nach Uhrzeit")
     df_heute["Hour"] = pd.to_datetime(df_heute["TX_DATETIME"]).dt.hour
     fig = px.histogram(df_heute, x='Hour', title="Transaktionen nach Stunde", nbins=24)
     st.plotly_chart(fig, use_container_width=True)
@@ -167,7 +174,7 @@ if page == "Aktueller Stand":
 
     # === Karte mit Live-Koordinaten (optional) ===
     try:
-        with open('live_coords.txt', 'r') as f:
+        with open("C:\PM4\PM4-Main\PM4\live_coords.txt", 'r') as f:
             coords = json.load(f)
         df_coords = pd.DataFrame(coords)
 
@@ -203,16 +210,92 @@ if page == "Aktueller Stand":
 elif page == "Übersicht Transaktionen":
     st.title("📄 Übersicht Transaktionen")
 
-    amount_threshold = st.sidebar.slider(
-        "Mindestbetrag ($)",
-        min_value=int(df['TX_AMOUNT'].min()),
-        max_value=int(df['TX_AMOUNT'].max()),
-        value=100
-    )
+    st.markdown("")
 
-    columns_to_show = ['TRANSACTION_ID', 'TX_DATETIME', 'CUSTOMER_ID', 'TERMINAL_ID', 'TX_AMOUNT', 'TX_FRAUD']
-    filtered_df = df[df['TX_AMOUNT'] >= amount_threshold]
-    st.dataframe(filtered_df[columns_to_show])
+    # === TX_DATETIME sicherstellen ===
+    df["TX_DATETIME"] = pd.to_datetime(df["TX_DATETIME"], errors="coerce")
+    df = df[df["TX_DATETIME"].notna()]  # Zeilen mit NaT entfernen
+
+    # === Filter Sidebar ===
+    st.sidebar.header("🔎 Filter")
+    min_betrag = st.sidebar.slider("Min. Betrag ($)", int(df["TX_AMOUNT"].min()), int(df["TX_AMOUNT"].max()), 0)
+    max_betrag = st.sidebar.slider("Max. Betrag ($)", min_betrag, int(df["TX_AMOUNT"].max()), int(df["TX_AMOUNT"].max()))
+
+    status = st.sidebar.selectbox("Betrugsstatus", ["Alle", "Nur Betrug", "Nur legitim"])
+    datum_optionen = sorted(df["TX_DATETIME"].dt.date.dropna().unique(), reverse=True)
+    datum_filter = st.sidebar.multiselect("Datum auswählen", datum_optionen, default=datum_optionen[:3])
+
+    kunde_filter = st.sidebar.text_input("Kunde enthält (optional)")
+    terminal_filter = st.sidebar.text_input("Terminal enthält (optional)")
+
+    # === Daten filtern ===
+    filtered_df = df[
+        (df["TX_AMOUNT"] >= min_betrag) &
+        (df["TX_AMOUNT"] <= max_betrag) &
+        (df["TX_DATETIME"].notna()) &
+        (df["TX_DATETIME"].dt.date.isin(datum_filter))
+    ]
+
+    if status == "Nur Betrug":
+        filtered_df = filtered_df[filtered_df["TX_FRAUD"] == 1]
+    elif status == "Nur legitim":
+        filtered_df = filtered_df[filtered_df["TX_FRAUD"] == 0]
+
+    if kunde_filter:
+        filtered_df = filtered_df[filtered_df["CUSTOMER_ID"].astype(str).str.contains(kunde_filter)]
+    if terminal_filter:
+        filtered_df = filtered_df[filtered_df["TERMINAL_ID"].astype(str).str.contains(terminal_filter)]
+
+    st.markdown(f"### ✅ {len(filtered_df)} Transaktionen gefunden")
+
+    # === KPI Bereich ===
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Ø Betrag", f"${filtered_df['TX_AMOUNT'].mean():.2f}")
+    col2.metric("Anteil Betrugsfälle", f"{filtered_df['TX_FRAUD'].mean() * 100:.2f}%")
+    col3.metric("Einzigartige Kunden", filtered_df["CUSTOMER_ID"].nunique())
+
+    st.divider()
+
+    # === Top 5 Transaktionen ===
+    st.markdown("### 🏆 Top 5 Transaktionen nach Betrag")
+    top_5 = filtered_df.sort_values("TX_AMOUNT", ascending=False).head(5)
+    st.dataframe(top_5[["TRANSACTION_ID", "TX_DATETIME", "CUSTOMER_ID", "TX_AMOUNT", "TX_FRAUD"]], use_container_width=True)
+
+    # === Ampelsystem einbauen ===
+    def fraud_ampel(fraud):
+        if fraud == 1:
+            return "🔴"
+        else:
+            return "🟢"
+
+    filtered_df["⚠️ Status"] = filtered_df["TX_FRAUD"].apply(fraud_ampel)
+    anzeige_spalten = ["TRANSACTION_ID", "TX_DATETIME", "CUSTOMER_ID", "TERMINAL_ID", "TX_AMOUNT", "⚠️ Status"]
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown("### 📋 Gefilterte Transaktionen")
+    with col2:
+        if st.button("ℹ️ Hilfe", key="hilfe_transaktionen"):
+            st.session_state.page = "Support"
+            st.rerun()
+
+    st.dataframe(filtered_df[anzeige_spalten].sort_values("TX_DATETIME", ascending=False), use_container_width=True)
+
+    # === PI-Plot: Legit vs Fraud ===
+    fraud_counts = filtered_df["TX_FRAUD"].value_counts().rename({0: "Legitim", 1: "Betrug"})
+    fig_pie = px.pie(values=fraud_counts.values, names=fraud_counts.index, title="Betrugsverhältnis")
+    st.plotly_chart(fig_pie, use_container_width=True)
+
+    # === Balkendiagramm: Betrugsrate pro Tag ===
+    st.markdown("### 📊 Betrugsrate pro Tag")
+    df["TX_DATE"] = df["TX_DATETIME"].dt.date
+    fraud_per_day = df.groupby("TX_DATE")["TX_FRAUD"].mean() * 100
+    fig_bar = px.bar(fraud_per_day, title="Betrugsrate (%) pro Tag", labels={"value": "Betrugsrate (%)", "TX_DATE": "Datum"})
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+    # === CSV-Export ===
+    csv = filtered_df.to_csv(index=False).encode("utf-8")
+    st.download_button("📁 Export als CSV", csv, "transaktionen_export.csv", mime="text/csv")
+
 
 elif page == "Detaillierte Transaktion":
     st.title("🔍 Detaillierte Transaktion")
@@ -448,16 +531,43 @@ elif page == "Second Level Support":
 
     # Statuswahl
     status = st.selectbox("Bearbeitungsstatus wählen", [
-        "In Bearbeitung", "Bestätigter Betrug", "Kein Betrug", "Weiter an Analyst"
+        "In Bearbeitung", "Bestätigter Betrug", "Kein Betrug", "Unklar"
     ])
 
     kommentar = st.text_area("Kommentar zum Fall", placeholder="Was wurde festgestellt?")
+
+    # Aktionen
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("### 🔧 Aktionen")
+        weiter_support = st.checkbox("Weiter an Second Support")
+        kunden_anrufen = st.checkbox("Kunden Anrufen")
+        kunden_hat_fragen = st.checkbox("Kunde hat Fragen")
+    with col2:
+        st.markdown("### 📝 Kommentar zum Fall")
+        kommentar = st.text_area("Kommentar eingeben:", placeholder="Hier Bemerkungen einfügen...")
+
+    with st.container():
+        st.markdown(
+            """
+            <div style="background-color: #f0f0f0; padding: 20px; border: 3px solid red; border-radius: 10px;">
+            <h3 style="color:black;">🚨 Weitere Maßnahmen</h3>                        
+            """,
+            unsafe_allow_html=True,
+        )
+        kunde_sperren = st.checkbox("Kunde sperren")
+        nur_online = st.checkbox("Nur Online-Zahlungen zulassen")
+        nur_ausland = st.checkbox("Nur ausländische Zahlungen erlauben")
+        betrag_ab = st.number_input("Beträge ab (CHF)", min_value=0.00, step=10.00, format="%.2f")
+        whitelist_only = st.checkbox("Nur vertrauenswürdige Händler (Whitelisted)")
 
     if st.button("💾 Fall aktualisieren"):
         # Hier würdest du den Status + Kommentar speichern (z. B. in DB oder CSV)
         st.success("✅ Fallstatus gespeichert!")
 
     st.markdown("---")
+
+
 
     # Feedback an ML-Team
     st.markdown("### 📡 Rückmeldung ans Modell-Team")
