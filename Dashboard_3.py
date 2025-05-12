@@ -20,6 +20,7 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
+    st.image("logo.jpg", width=200)
     st.title("🔐 Login erforderlich")
     username = st.text_input("Benutzername")
     password = st.text_input("Passwort", type="password")
@@ -34,38 +35,34 @@ if not st.session_state.logged_in:
     st.stop()
 
 
-
 # Session State initialisieren
 if "page" not in st.session_state:
     st.session_state.page = "Aktueller Stand"
 
+
 # Seitenkonfiguration
 st.set_page_config(
     page_title="Kreditkartenbetrug Überwachung",
-    page_icon="💳",
+    page_icon="logo.jpg",  # Optional als Favicon
     layout="wide"
 )
 
-# Navigation Sidebar
-page_choice = st.sidebar.radio("Gehe zu:", [
-    "Aktueller Stand",
-    "Übersicht Transaktionen",
-    "Detaillierte Transaktion",
-    "Second Level Support",
-    "System",
-    "Feedback Loop",
-    "Retraining",
-    "Support"
-], index=[
-    "Aktueller Stand",
-    "Übersicht Transaktionen",
-    "Detaillierte Transaktion",
-    "Second Level Support",
-    "System",
-    "Feedback Loop",
-    "Retraining",
-    "Support"
-].index(st.session_state.page))
+# Sidebar mit Logo und Navigation
+with st.sidebar:
+    st.image("logo.jpg", width=180)  # <-- Logo oben
+    st.markdown("---")
+    st.markdown("### 📂 Navigation")
+
+    page_choice = st.radio("Gehe zu:", [
+        "Aktueller Stand",
+        "Übersicht Transaktionen",
+        "Detaillierte Transaktion",
+        "Second Level Support",
+        "System",
+        "Feedback Loop",
+        "Retraining",
+        "Support"
+    ])
 
 if page_choice != st.session_state.page:
     st.session_state.page = page_choice
@@ -75,7 +72,7 @@ page = st.session_state.page
 # CSV-Datei laden
 @st.cache_data(ttl=60)
 def load_data():
-    df = pd.read_csv("C:/PM4/processed-data/transactions_first_50_kürzer.csv", sep=";", low_memory=False)
+    df = pd.read_csv("C:/PM4/processed-data/transactions_first_50_kürzer.csv", sep=";")
     df['TX_DATETIME'] = pd.to_datetime(df['TX_DATETIME'])
     return df
 
@@ -123,7 +120,7 @@ if page == "Aktueller Stand":
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("📅 Transaktionen", anzahl_transaktionen_heute)
     col2.metric("🚨 Betrugsfälle", anzahl_betrug_heute, delta_betrug_anzeige, delta_color=farbe)
-    col3.metric("💵 Ø Betrag ($)", f"{betrag_durchschnitt_heute:.2f}")
+    col3.metric("💵 Ø Betrag (CHF)", f"{betrag_durchschnitt_heute:.2f}")
     col4.metric("👤 Kunden", kundenanzahl_heute)
     col5.metric("🔁 Ø Tx pro Kunde", f"{tx_pro_kunde:.2f}")
 
@@ -153,7 +150,7 @@ if page == "Aktueller Stand":
         "TRANSACTION_ID", "Zeit", "TX_AMOUNT", "CUSTOMER_ID", "TERMINAL_ID", "Status"
     ]].rename(columns={
         "TRANSACTION_ID": "Transaktion",
-        "TX_AMOUNT": "Betrag ($)",
+        "TX_AMOUNT": "Betrag (CHF)",
         "CUSTOMER_ID": "Kunde",
         "TERMINAL_ID": "Terminal"
     })
@@ -218,8 +215,8 @@ elif page == "Übersicht Transaktionen":
 
     # === Filter Sidebar ===
     st.sidebar.header("🔎 Filter")
-    min_betrag = st.sidebar.slider("Min. Betrag ($)", int(df["TX_AMOUNT"].min()), int(df["TX_AMOUNT"].max()), 0)
-    max_betrag = st.sidebar.slider("Max. Betrag ($)", min_betrag, int(df["TX_AMOUNT"].max()), int(df["TX_AMOUNT"].max()))
+    min_betrag = st.sidebar.slider("Min. Betrag (CHF)", int(df["TX_AMOUNT"].min()), int(df["TX_AMOUNT"].max()), 0)
+    max_betrag = st.sidebar.slider("Max. Betrag (CHF)", min_betrag, int(df["TX_AMOUNT"].max()), int(df["TX_AMOUNT"].max()))
 
     status = st.sidebar.selectbox("Betrugsstatus", ["Alle", "Nur Betrug", "Nur legitim"])
     datum_optionen = sorted(df["TX_DATETIME"].dt.date.dropna().unique(), reverse=True)
@@ -250,7 +247,7 @@ elif page == "Übersicht Transaktionen":
 
     # === KPI Bereich ===
     col1, col2, col3 = st.columns(3)
-    col1.metric("Ø Betrag", f"${filtered_df['TX_AMOUNT'].mean():.2f}")
+    col1.metric("Ø Betrag", f"CHF{filtered_df['TX_AMOUNT'].mean():.2f}")
     col2.metric("Anteil Betrugsfälle", f"{filtered_df['TX_FRAUD'].mean() * 100:.2f}%")
     col3.metric("Einzigartige Kunden", filtered_df["CUSTOMER_ID"].nunique())
 
@@ -319,7 +316,7 @@ elif page == "Detaillierte Transaktion":
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Transaktions-ID", f"{transaction_id}")
                 col2.metric("Kunde", f"{customer_id}")
-                col3.metric("Betrag ($)", f"{amount:.2f}")
+                col3.metric("Betrag (CHF)", f"{amount:.2f}")
                 col4.metric("Betrugsfall?", "JA" if is_fraud == 1 else "NEIN")
 
                 st.markdown("---")
@@ -335,7 +332,7 @@ elif page == "Detaillierte Transaktion":
                             result["CUSTOMER_ID_NB_TX_7DAY_WINDOW"].values[0],
                             result["CUSTOMER_ID_NB_TX_30DAY_WINDOW"].values[0],
                         ],
-                        "Ø Betrag ($)": [
+                        "Ø Betrag (CHF)": [
                             result["CUSTOMER_ID_AVG_AMOUNT_1DAY_WINDOW"].values[0],
                             result["CUSTOMER_ID_AVG_AMOUNT_7DAY_WINDOW"].values[0],
                             result["CUSTOMER_ID_AVG_AMOUNT_30DAY_WINDOW"].values[0],
@@ -390,16 +387,16 @@ elif page == "Detaillierte Transaktion":
 
                 st.markdown("### 📊 Vergleich mit Ø-Kundenbetrag (30 Tage)")
                 colA, colB = st.columns(2)
-                colA.metric("Aktueller Betrag", f"${amount:.2f}")
-                colB.metric("Ø Betrag (30 Tage)", f"${ø_30:.2f}", f"{abweichung:+.1f} %")
+                colA.metric("Aktueller Betrag", f"CHF{amount:.2f}")
+                colB.metric("Ø Betrag (30 Tage)", f"CHF{ø_30:.2f}", f"{abweichung:+.1f} %")
 
                 # Verlauf Betrag (Dummy-Daten)
                 st.subheader("📉 Verlauf der letzten 10 Kunden-Transaktionen")
                 kunden_betraege = pd.DataFrame({
                     "Datum": pd.date_range(end=pd.Timestamp.today(), periods=10),
-                    "Betrag ($)": (amount * (1 + 0.1 * (np.random.randn(10)))).round(2)
+                    "Betrag (CHF)": (amount * (1 + 0.1 * (np.random.randn(10)))).round(2)
                 })
-                fig = px.line(kunden_betraege, x="Datum", y="Betrag ($)", title="Kundenbetrag Verlauf")
+                fig = px.line(kunden_betraege, x="Datum", y="Betrag (CHF)", title="Kundenbetrag Verlauf")
                 st.plotly_chart(fig, use_container_width=True)
 
                 # Heatmap Kundenverhalten
@@ -511,7 +508,7 @@ elif page == "Second Level Support":
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Transaktion", selected_id)
     col2.metric("Kunde", fall["CUSTOMER_ID"])
-    col3.metric("Betrag ($)", f"{fall['TX_AMOUNT']:.2f}")
+    col3.metric("Betrag (CHF)", f"{fall['TX_AMOUNT']:.2f}")
     col4.metric("Szenario", int(fall["TX_FRAUD_SCENARIO"]))
 
     # Vergleich mit Kunden-Ø
@@ -519,8 +516,8 @@ elif page == "Second Level Support":
     abw = ((fall["TX_AMOUNT"] - ø_30) / ø_30) * 100 if ø_30 else 0
     st.markdown("#### 📊 Vergleich zum 30-Tage-Ø-Betrag des Kunden")
     colA, colB = st.columns(2)
-    colA.metric("Aktueller Betrag", f"${fall['TX_AMOUNT']:.2f}")
-    colB.metric("Ø Betrag (30 Tage)", f"${ø_30:.2f}", f"{abw:+.1f} %")
+    colA.metric("Aktueller Betrag", f"CHF{fall['TX_AMOUNT']:.2f}")
+    colB.metric("Ø Betrag (30 Tage)", f"CHF{ø_30:.2f}", f"{abw:+.1f} %")
 
     # Modellscore (optional)
     if "MODEL_SCORE" in fall:
@@ -645,20 +642,18 @@ elif page == "Feedback Loop":
     st_autorefresh(interval=10_000, key="refresh_feedback")
 
     # === Metriken laden ===
-    precision_df = pd.read_csv("precision_history.csv")
-    recall_df = pd.read_csv("recall_history.csv")
-    roc_auc_df = pd.read_csv("roc_auc_history.csv")
-    f1_score_df = pd.read_csv("f1_score_history.csv")
+    metrics_df = pd.read_csv("metrics_history.csv")
 
-    latest_precision = precision_df["Wert"].iloc[-1]
-    latest_recall = recall_df["Wert"].iloc[-1]
-    latest_roc_auc = roc_auc_df["Wert"].iloc[-1]
-    latest_f1_score = f1_score_df["Wert"].iloc[-1]
+    latest_precision = metrics_df["Precision"].iloc[-1]
+    latest_recall    = metrics_df["Recall"].iloc[-1]
+    latest_roc_auc   = metrics_df["ROC_AUC"].iloc[-1]
+    latest_f1_score  = metrics_df["F1_Score"].iloc[-1]
+    latest_pr_auc    = metrics_df["PR_AUC"].iloc[-1]
 
     # === 1. Modell-Kontext anzeigen ===
     st.markdown("### 🧠 Modellinformationen")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("📅 Letztes Training", "2025-04-25")  # Beispielwert
+    col1.metric("📅 Letztes Training", "2025-04-25")
     col2.metric("🧠 Modell", "XGBoost v2.1")
     col3.metric("📁 Datensätze", "50'000")
     col4.metric("📊 Features", "22")
@@ -667,14 +662,13 @@ elif page == "Feedback Loop":
 
     # === 2. KPI Übersicht mit Alarm ===
     st.markdown("### 📋 Aktuelle Modellmetriken")
-    col1, col2, col3, col4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Precision", f"{latest_precision:.3f}")
+    c2.metric("Recall",    f"{latest_recall:.3f}")
+    c3.metric("ROC AUC",   f"{latest_roc_auc:.3f}")
+    c4.metric("F1-Score",  f"{latest_f1_score:.3f}")
+    c5.metric("PR AUC",    f"{latest_pr_auc:.3f}")
 
-    col1.metric("Precision", f"{latest_precision:.3f}")
-    col2.metric("Recall", f"{latest_recall:.3f}")
-    col3.metric("ROC AUC", f"{latest_roc_auc:.3f}")
-    col4.metric("F1-Score", f"{latest_f1_score:.3f}")
-
-    # Alarmanzeige bei schlechter Performance
     if latest_f1_score < 0.75:
         st.error("⚠️ F1-Score unter 0.75 – Modellperformance kritisch!")
     elif latest_f1_score < 0.85:
@@ -682,40 +676,35 @@ elif page == "Feedback Loop":
 
     st.markdown("---")
 
-    # === 3. Metrikverläufe ===
-    st.markdown("### 📈 Verlauf der Modellmetriken")
-    col5, col6 = st.columns(2)
-
-    with col5:
-        st.subheader(f"Precision Verlauf")
-        st.line_chart(precision_df.set_index("Zeit"))
-        st.subheader(f"ROC AUC Verlauf")
-        st.line_chart(roc_auc_df.set_index("Zeit"))
-
-    with col6:
-        st.subheader(f"Recall Verlauf")
-        st.line_chart(recall_df.set_index("Zeit"))
-        st.subheader(f"F1-Score Verlauf")
-        st.line_chart(f1_score_df.set_index("Zeit"))
+    # === 3. Metrikverläufe (ein Plot für alle) ===
+    st.markdown("### 📈 Verlauf aller Modellmetriken")
+    # Zeit als Index
+    df_idx = metrics_df.set_index("Zeit")
+    # Gemeinsames Linien-Diagramm
+    st.line_chart(df_idx[["Precision", "Recall", "ROC_AUC", "F1_Score", "PR_AUC"]])
 
     st.markdown("---")
 
     # === 4. Konfusionsmatrix (Demo) ===
     st.markdown("### 🧮 Konfusionsmatrix")
     conf_matrix = pd.DataFrame({
-        "Pred: Fraud": [15, 3],
-        "Pred: Normal": [5, 100]
+        "Pred: Fraud":  [15,   3],
+        "Pred: Normal": [5,   100]
     }, index=["True: Fraud", "True: Normal"])
-
-    fig_matrix = px.imshow(conf_matrix, text_auto=True, color_continuous_scale='Blues',
-                           title="Konfusionsmatrix", aspect="auto")
+    fig_matrix = px.imshow(
+        conf_matrix,
+        text_auto=True,
+        color_continuous_scale='Blues',
+        title="Konfusionsmatrix",
+        aspect="auto"
+    )
     st.plotly_chart(fig_matrix, use_container_width=True)
 
-    # === 5. Button für Retraining-Seite ===
     st.markdown("---")
     if st.button("🚀 Zum Retraining gehen"):
         st.session_state.page = "Retraining"
         st.rerun()
+
 
 elif page == "Retraining":
     st.title("♻️ Manuelles Retraining")
