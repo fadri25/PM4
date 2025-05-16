@@ -1,37 +1,46 @@
-# feedback_generator_separate.py
-
 import pandas as pd
 import numpy as np
 import time
 from datetime import datetime
 
-def update_history(file_name, start_value, variation=0.005):
+# Basis-Werte aus dem Bild
+BASE_METRICS = {
+    "Precision": 0.9533,
+    "Recall":    0.7772,
+    "F1_Score":  0.8563,
+    "ROC_AUC":   0.9908,
+    "PR_AUC":    0.8655,
+}
+VARIATION = 0.005
+CSV_FILE = "metrics_history.csv"
+
+def update_metrics_history(file_name, base_metrics, variation):
+    # CSV einlesen oder leeres DataFrame anlegen
     try:
         history = pd.read_csv(file_name)
     except FileNotFoundError:
-        history = pd.DataFrame(columns=["Zeit", "Wert"])
+        cols = ["Zeit"] + list(base_metrics.keys())
+        history = pd.DataFrame(columns=cols)
 
+    # Letzte Werte (oder Basis, wenn leer)
     if not history.empty:
-        last_value = history["Wert"].iloc[-1]
+        last = history.iloc[-1].to_dict()
     else:
-        last_value = start_value
+        last = {m: v for m, v in base_metrics.items()}
 
-    new_value = np.clip(last_value + np.random.normal(0, variation), 0.80, 1.0)
+    # Neue Werte berechnen und auf base±variation clippen
+    new_row = {"Zeit": datetime.now().strftime("%H:%M:%S")}
+    for m, base in base_metrics.items():
+        lower, upper = base - variation, base + variation
+        raw = last.get(m, base) + np.random.normal(scale=variation)
+        new_row[m] = round(np.clip(raw, lower, upper), 4)
 
-    new_row = {
-        "Zeit": datetime.now().strftime("%H:%M:%S"),
-        "Wert": round(new_value, 3)
-    }
-
+    # An DataFrame anhängen und speichern
     history = pd.concat([history, pd.DataFrame([new_row])], ignore_index=True)
-
     history.to_csv(file_name, index=False)
 
 if __name__ == "__main__":
     while True:
-        update_history("precision_history.csv", start_value=0.92)
-        update_history("recall_history.csv", start_value=0.87)
-        update_history("roc_auc_history.csv", start_value=0.89)
-        update_history("f1_score_history.csv", start_value=0.95)
+        update_metrics_history(CSV_FILE, BASE_METRICS, VARIATION)
         print("Neue Werte gespeichert ✅")
         time.sleep(8)

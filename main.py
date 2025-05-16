@@ -17,6 +17,7 @@ if __name__ == "__main__":
     #loader = CSVLoader(f"C:/PM4/transactions.csv")
     #loader.load_csv()
     
+    
     begin_date = "2018-04-01"
     end_date = "2019-09-30"
     input_file = "C:/PM4/transactions_first_100000.csv"
@@ -29,8 +30,7 @@ if __name__ == "__main__":
         processor.save_processed_data()
     
     print("Verarbeitung abgeschlossen.")
-    
-    #model = xgbm.FraudDetectionModel(r"C:/PM4/processed-data/transactions_first_50_kürzer.csv")
+    """
     model = xgbm.FraudDetectionModel(r"C:/PM4/processed-data/transactions_first_100000.csv")
     model.feature_engineering()
     X_train, X_test, y_train, y_test = model.prepare_data()
