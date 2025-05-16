@@ -15,13 +15,13 @@ class DataTransformation:
         loader = CSVLoader(self.input_file)
         loader.load_csv()
         self.df = loader.get_dataframe()
+        self.df['TX_DATETIME'] = pd.to_datetime(self.df['TX_DATETIME'])
     
     def process_transactions(self):
         if self.df is None:
             print("Daten nicht geladen!")
             return False
         
-        self.df['TX_DATETIME'] = pd.to_datetime(self.df['TX_DATETIME'])
         self.df['TX_DURING_WEEKEND'] = self.df['TX_DATETIME'].apply(self.is_weekend)
         self.df['TX_DURING_NIGHT'] = self.df['TX_DATETIME'].apply(self.is_night)
         

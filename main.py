@@ -7,7 +7,6 @@ import numpy as np
 import matplotlib as plt
 import xgboost_model as xgbm
 import os
-import transf_transactions
 
 class Gui:
     def testgui():
@@ -30,7 +29,7 @@ if __name__ == "__main__":
         processor.save_processed_data()
     
     print("Verarbeitung abgeschlossen.")
-    """
+
     model = xgbm.FraudDetectionModel(r"C:/PM4/processed-data/transactions_first_100000.csv")
     model.feature_engineering()
     X_train, X_test, y_train, y_test = model.prepare_data()
