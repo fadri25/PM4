@@ -85,8 +85,8 @@ class DataTransformation:
         output_file = os.path.join(self.output_folder, "transactions_all.csv")
         self.df.to_csv(output_file, index=False)
         
-        testdata_file = os.path.join(self.output_folder, "transactions_first_100000.csv")
-        self.df.head(100000).to_csv(testdata_file, index=False)
+        testdata_file = os.path.join(self.output_folder, "transactions_first_50_kürzer.csv.csv")
+        self.df.head(50).to_csv(testdata_file, index=False)
         
         return True
     

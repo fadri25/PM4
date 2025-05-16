@@ -19,7 +19,7 @@ if __name__ == "__main__":
     
     begin_date = "2018-04-01"
     end_date = "2019-09-30"
-    input_file = "C:/PM4/transactions.csv"
+    input_file = "C:/PM4/transactions_first_100000.csv"
     output_folder = "C:/PM4/processed-data/"
     processor = DataTransformation(input_file, output_folder, begin_date, end_date)
     processor.load_data()
@@ -30,6 +30,7 @@ if __name__ == "__main__":
     
     print("Verarbeitung abgeschlossen.")
     
+    #model = xgbm.FraudDetectionModel(r"C:/PM4/processed-data/transactions_first_50_kürzer.csv")
     model = xgbm.FraudDetectionModel(r"C:/PM4/processed-data/transactions_first_100000.csv")
     model.feature_engineering()
     X_train, X_test, y_train, y_test = model.prepare_data()
@@ -45,10 +46,11 @@ if __name__ == "__main__":
 
     model.evaluate(y_test)
     model.plot_feature_importance()
-    
+    """
     # ==== NEUE DATEN AUSWERTEN ====   
     new_data_path = r"C:/PM4/new_transactions.csv"  # Pfad zu neuen Transaktionen
     save_predictions_path = r"C:/PM4/new_predictions.csv"  # Wo die Vorhersagen gespeichert werden sollen
     predictions = model.predict_new_data(new_data_path, save_predictions_path)
     print(predictions.head(20))
+    """
 

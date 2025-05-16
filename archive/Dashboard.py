@@ -5,7 +5,7 @@ import plotly.express as px
 import numpy as np
 
 # CSV-Daten laden (Dateipfad ggf. anpassen)
-df = pd.read_csv("transactions_first_100000.csv")
+df = pd.read_csv(f"C:/PM4/processed-data/transactions_first_50_kürzer.csv")
 df["TX_DATETIME"] = pd.to_datetime(df["TX_DATETIME"], errors="coerce")
 df["Hour"] = df["TX_DATETIME"].dt.hour
 df["Weekday"] = df["TX_DATETIME"].dt.day_name()
