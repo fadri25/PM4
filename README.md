@@ -80,6 +80,14 @@ model.predict_new_data("C:/PM4/new_data.csv", "C:/PM4/predictions.csv")
 
 ---
 
+## Ergebnisdaten
+
+| Datei | Inhalt |
+|-------|--------|
+| `transactions_all.csv` | Vollständig verarbeitete Daten |
+| `transactions_first_50_kürzer.csv` | Vorschau (für das Dashboard) |
+| `fraud_detection_model.json` | Trainiertes Modell |
+
 ## Autoren
 
 Fadri Barahona, Manuel Weder, Kristina Dordevic  

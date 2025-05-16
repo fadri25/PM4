@@ -4,7 +4,7 @@ class CSVLoader:
     """
     Klasse zum Laden einer CSV-Datei in einen Pandas Dataframe.
     """
-    def __init__(self, file_path, index_col = 0): # Index überall enthalten?
+    def __init__(self, file_path, index_col = None):
         self.file_path = file_path
         self.df = None
         self.index_col = index_col
@@ -15,16 +15,16 @@ class CSVLoader:
         """
         try:
             self.df = pd.read_csv(self.file_path, index_col = self.index_col)
-            print(f"CSV erfolgreich geladen: {self.file_path}") # Muss dann ins Dashboard (log)
+            print(f"CSV erfolgreich geladen: {self.file_path}")
         except Exception as e:
-            print(f"Fehler beim Laden der CSV: {e}") # Auch ins Dashboard
+            print(f"Fehler beim Laden der CSV: {e}") 
 
     def get_dataframe(self):
         """
         Gibt den geladenen Dataframe zurück.
         """
         if self.df is None:
-            print("Fehler: CSV wurde nicht geladen.") # Dashboard
+            print("Fehler: CSV wurde nicht geladen.")
         return self.df
 
 

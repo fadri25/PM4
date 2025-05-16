@@ -2,26 +2,19 @@ from getdata import CSVLoader, CSVSampler
 from data_transformation import DataTransformation, CustomerFeatures, Terminalriskfeatures
 import xgboost_model
 import pandas as pd
-import sklearn
 import numpy as np
-import matplotlib as plt
 import xgboost_model as xgbm
 import os
 
-class Gui:
-    def testgui():
-        print("test")
-
 if __name__ == "__main__":
-    #loader = CSVLoader(f"C:/PM4/transactions.csv")
-    #loader.load_csv()
-    
+    loader = CSVLoader(f"C:/PM4/transactions.csv")
+    loader.load_csv()
     
     begin_date = "2018-04-01"
-    end_date = "2019-09-30"
-    input_file = "C:/PM4/transactions_first_100000.csv"
-    output_folder = "C:/PM4/processed-data/"
-    processor = DataTransformation(input_file, output_folder, begin_date, end_date)
+    end_date = "2019-09-30" 
+    #input_file = "C:/PM4/transactions_first_100000.csv" # Rohdaten-Einput aufgrund der Zeit nur 100'000 Datensätze
+    output_folder = "C:/PM4/processed-data/" # Output von transformierten Daten
+    processor = DataTransformation(loader, output_folder, begin_date, end_date)
     processor.load_data()
     
     if processor.process_transactions():
@@ -30,10 +23,10 @@ if __name__ == "__main__":
     
     print("Verarbeitung abgeschlossen.")
 
-    model = xgbm.FraudDetectionModel(r"C:/PM4/processed-data/transactions_first_100000.csv")
+    model = xgbm.FraudDetectionModel(processor)
     model.feature_engineering()
     X_train, X_test, y_train, y_test = model.prepare_data()
-    model_path = "C:/PM4/fraud_detection_model.json"
+    model_path = "C:/PM4/fraud_detection_model.json" # Pfad für die Speicherung des Modells
     if os.path.exists(model_path):
         print("Bestehendes Modell wird geladen...")
         model.load_model(model_path, X_test)
@@ -45,11 +38,10 @@ if __name__ == "__main__":
 
     model.evaluate(y_test)
     model.plot_feature_importance()
-    """
+    
     # ==== NEUE DATEN AUSWERTEN ====   
     new_data_path = r"C:/PM4/new_transactions.csv"  # Pfad zu neuen Transaktionen
     save_predictions_path = r"C:/PM4/new_predictions.csv"  # Wo die Vorhersagen gespeichert werden sollen
     predictions = model.predict_new_data(new_data_path, save_predictions_path)
     print(predictions.head(20))
-    """
 

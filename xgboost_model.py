@@ -8,10 +8,20 @@ from sklearn.metrics import (precision_score, recall_score, f1_score,
                              roc_auc_score, average_precision_score, confusion_matrix, precision_recall_curve)
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline
+from getdata import CSVLoader
 
 class FraudDetectionModel:
-    def __init__(self, csv_path):
-        self.df = pd.read_csv(csv_path)
+    def __init__(self, data_source):
+        if isinstance(data_source, pd.DataFrame):
+            self.df = data_source
+        elif isinstance(data_source, CSVLoader):
+            data_source.load_csv()
+            self.df = data_source.get_dataframe()
+        elif isinstance(data_source, str):
+            self.df = pd.read_csv(data_source)
+        else:
+            raise ValueError("Ungültiger Datentyp für data_source")
+        self.df = pd.read_csv(data_source)
         self.model = None
         self.best_params = None
         self.threshold = None

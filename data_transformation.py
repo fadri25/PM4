@@ -1,5 +1,4 @@
 import os
-import datetime
 import pandas as pd
 from getdata import CSVLoader, CSVSampler
 
@@ -133,10 +132,15 @@ class Terminalriskfeatures:
             
             terminal_transactions[f'TERMINAL_ID_NB_TX_{window_size}DAY_WINDOW'] = nb_tx_window
             terminal_transactions[f'TERMINAL_ID_RISK_{window_size}DAY_WINDOW'] = risk_window
-        
-        terminal_transactions.index = terminal_transactions['TRANSACTION_ID']
+
+        if 'TRANSACTION_ID' in terminal_transactions.columns:
+            terminal_transactions.index = terminal_transactions['TRANSACTION_ID']
+        else:
+            terminal_transactions.reset_index(drop=True, inplace=True)
+
         terminal_transactions.fillna(0, inplace=True)
         return terminal_transactions
+
 
 if __name__ == "__main__":
     pass
