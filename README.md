@@ -3,8 +3,8 @@
 
 Dieses Repository enthält zwei voneinander getrennte Systeme:
 
-1. **XGBoost-Modell** zur Erkennung von betrügerischen Transaktionen  
-2. **Streamlit-Dashboard** zur Visualisierung und Analyse von Transaktionsdaten
+1. XGBoost-Modell zur Erkennung von betrügerischen Transaktionen  
+2. Streamlit-Dashboard zur Visualisierung und Analyse von Transaktionsdaten
 
 ---
 
@@ -16,7 +16,6 @@ Dieses Repository enthält zwei voneinander getrennte Systeme:
 ├── data_transformation.py    # Feature Engineering (zeitbasierte + aggregierte Features)
 ├── getdata.py                # CSV-Import + Sampling
 ├── Dashboard_3.py            # Streamlit-Dashboard zur Analyse
-├── /processed-data           # Ergebnisordner
 └── README.md                 # Diese Anleitung
 ```
 
@@ -68,8 +67,8 @@ pip install -r requirements.txt
 
 ## Hinweise
 
-- Das Modell und das Dashboard **verwenden nicht denselben Datensatz**.
-- Das Modell nutzt `transactions_first_100000.csv`, während das Dashboard mit einer **reduzierten Vorschauversion** arbeitet.
+- Das Modell und das Dashboard verwenden nicht denselben Datensatz.
+- Das Modell nutzt `transactions_first_100000.csv`, während das Dashboard mit einer reduzierten Vorschauversion arbeitet.
 - Für das Einlesen der Daten muss der Ordner und die Dateien unter dem Pfad "C:/PM4/" vorhanden sein.
 ---
 
@@ -81,7 +80,7 @@ model.predict_new_data("C:/PM4/new_data.csv", "C:/PM4/predictions.csv")
 
 ---
 
-## 🧾 Autor
+## Autoren
 
 Fadri Barahona, Manuel Weder, Kristina Dordevic  
 Modul: Predictive Modelling 4  
