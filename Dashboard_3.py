@@ -72,7 +72,7 @@ page = st.session_state.page
 # CSV-Datei laden
 @st.cache_data(ttl=60)
 def load_data():
-    df = pd.read_csv("C:/PM4/processed-data/transactions_first_50_kürzer.csv", sep=";")
+    df = pd.read_csv("C:/PM4/processed-data/transactions_first_50_kürzer.csv", sep=",")
     df['TX_DATETIME'] = pd.to_datetime(df['TX_DATETIME'])
     return df
 

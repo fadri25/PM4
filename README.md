@@ -28,13 +28,6 @@ Dieses Repository enthält zwei voneinander getrennte Systeme:
 pip install -r requirements.txt
 ```
 
-Empfohlene Tools:
-- Python ≥ 3.8
-- XGBoost
-- imbalanced-learn
-- Streamlit
-- Pandas, NumPy, Matplotlib, scikit-learn
-
 ---
 
 ## Start – Modelltraining
@@ -43,6 +36,7 @@ Empfohlene Tools:
    ```
    C:/PM4/transactions_first_100000.csv
    ```
+   # Geht auch mit mehr Datensätzen. Dauert einfach länger.
 
 2. Starte das Hauptskript:
    ```bash
@@ -54,20 +48,19 @@ Empfohlene Tools:
      `C:/PM4/fraud_detection_model.json`
    - Vorverarbeitete Daten:  
      `C:/PM4/processed-data/transactions_all.csv`
-   - Vorschau (Dashboard):  
-     `transactions_first_50_kürzer.csv.csv`
+   - Vorschau :  
+     `transactions_first_50_kürzer.csv`
 
 ---
 
 ## Start – Dashboard
 
-1. Voraussetzung: Erfolgreicher Lauf von `main.py`
-2. Dashboard starten:
+1. Dashboard starten:
    ```bash
    streamlit run Dashboard_3.py
    ```
 
-3. Login:
+2. Login:
    - Benutzername: `0550`
    - Passwort: *nicht erforderlich*
 
@@ -77,7 +70,7 @@ Empfohlene Tools:
 
 - Das Modell und das Dashboard **verwenden nicht denselben Datensatz**.
 - Das Modell nutzt `transactions_first_100000.csv`, während das Dashboard mit einer **reduzierten Vorschauversion** arbeitet.
-
+- Für das Einlesen der Daten muss der Ordner und die Dateien unter dem Pfad "C:/PM4/" vorhanden sein.
 ---
 
 ## Neue Daten analysieren
