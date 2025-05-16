@@ -22,24 +22,21 @@ class FraudDetectionModel:
         df['TX_TIME_SECONDS_SHIFTED'] = df.groupby('CUSTOMER_ID')['TX_TIME_SECONDS'].shift(1)
         df['TIME_SINCE_LAST_TX'] = df['TX_TIME_SECONDS'] - df['TX_TIME_SECONDS_SHIFTED']
         df['TIME_SINCE_LAST_TX'] = df['TIME_SINCE_LAST_TX'].fillna(999999)
-        for i in range(1, 4):
-            df[f'TX_AMOUNT_SHIFTED_{i}'] = df.groupby('CUSTOMER_ID')['TX_AMOUNT'].shift(i)
-        df['TX_AMOUNT_LAST3_MEAN'] = df[[f'TX_AMOUNT_SHIFTED_{i}' for i in range(1, 4)]].mean(axis=1).fillna(0)
-        df['TX_AMOUNT_TO_TERMINAL_AVG'] = df['TX_AMOUNT'] / df.groupby('TERMINAL_ID')['TX_AMOUNT'].transform('mean')
-        df['TERMINAL_FRAUD_RATIO'] = df['TERMINAL_ID'].map(df.groupby('TERMINAL_ID')['TX_FRAUD'].mean())
-        df = df.sort_values(by=['CUSTOMER_ID', 'TX_DATETIME'])
-        df['AVG_LAST_TX_AMOUNT'] = df.groupby('CUSTOMER_ID')['TX_AMOUNT'].transform(
-            lambda x: x.shift(1).rolling(window=5, min_periods=1).mean())
-        df['SPENDING_DRIFT'] = df['TX_AMOUNT'] / (df['AVG_LAST_TX_AMOUNT'] + 1e-5)
-        df['TX_DATETIME'] = pd.to_datetime(df['TX_DATETIME'])
-        df = df.sort_values(['CUSTOMER_ID', 'TX_DATETIME'])
-        df['TX_COUNT_1H'] = 0
+        df['TX_AMOUNT_SHIFTED_1'] = df.groupby('CUSTOMER_ID')['TX_AMOUNT'].shift(1)
+        df['TX_AMOUNT_SHIFTED_2'] = df.groupby('CUSTOMER_ID')['TX_AMOUNT'].shift(2)
+        df['TX_AMOUNT_SHIFTED_3'] = df.groupby('CUSTOMER_ID')['TX_AMOUNT'].shift(3)
+        df['TX_AMOUNT_LAST3_MEAN'] = df[['TX_AMOUNT_SHIFTED_1', 'TX_AMOUNT_SHIFTED_2', 'TX_AMOUNT_SHIFTED_3']].mean(axis=1)
+        df['TX_AMOUNT_LAST3_MEAN'] = df['TX_AMOUNT_LAST3_MEAN'].fillna(0)
+        terminal_avg = df.groupby('TERMINAL_ID')['TX_AMOUNT'].transform('mean')
+        df['TX_AMOUNT_TO_TERMINAL_AVG'] = df['TX_AMOUNT'] / terminal_avg
+        fraud_ratio_per_terminal = df.groupby('TERMINAL_ID')['TX_FRAUD'].mean()
+        df['TERMINAL_FRAUD_RATIO'] = df['TERMINAL_ID'].map(fraud_ratio_per_terminal)
 
         self.df = df
 
     def prepare_data(self):
         df = self.df.replace([np.inf, -np.inf], 0).fillna(0)
-        X = df.drop(columns=['TRANSACTION_ID', 'TX_DATETIME', 'TX_FRAUD', 'TX_FRAUD_SCENARIO', 'AVG_LAST_TX_AMOUNT'])
+        X = df.drop(columns=['TRANSACTION_ID', 'TX_DATETIME', 'TX_FRAUD', 'TX_FRAUD_SCENARIO', 'AVG_LAST_TX_AMOUNT'], errors='ignore')
         y = df['TX_FRAUD']
         return train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
@@ -56,13 +53,16 @@ class FraudDetectionModel:
         ])
 
         param_grid = {
-            'clf__max_depth': [3, 6, 9],
-            'clf__n_estimators': [25, 50, 100],
+            'clf__max_depth': [4, 6],
+            'clf__n_estimators': [50, 100],
             'clf__learning_rate': [0.1, 0.3],
+            'clf__subsample': [0.9, 1.0],
+            'clf__colsample_bytree': [0.9, 1.0],
+            'clf__gamma': [0, 1],
             'clf__random_state': [0]
         }
 
-        cv = TimeSeriesSplit(n_splits=5)
+        cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
         grid_search = GridSearchCV(
             estimator=pipeline,
@@ -133,6 +133,7 @@ class FraudDetectionModel:
                 print(f"Recall für Scenario {scenario}: {recall_scenario:.4f}")
             else:
                 print(f"Scenario {scenario}: Keine Testdaten vorhanden.")
+        print("\nSzenario-basierte Metriken:")
 
     def plot_feature_importance(self):
         xgb.plot_importance(self.model)
